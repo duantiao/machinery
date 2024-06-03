@@ -11,6 +11,8 @@ import (
 	"github.com/RichardKnop/machinery/v2/tasks"
 )
 
+var once sync.Once
+
 type registeredTaskNames struct {
 	sync.RWMutex
 	items []string
@@ -105,17 +107,19 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 
 // StopConsuming is a common part of StopConsuming
 func (b *Broker) StopConsuming() {
-	// Do not retry from now on
-	b.retry = false
-	// Stop the retry closure earlier
-	select {
-	case b.retryStopChan <- 1:
-		log.WARNING.Print("Stopping retry closure.")
-	default:
-	}
-	// Notifying the stop channel stops consuming of messages
-	close(b.stopChan)
-	log.WARNING.Print("Stop channel")
+	once.Do(func() {
+		// Do not retry from now on
+		b.retry = false
+		// Stop the retry closure earlier
+		select {
+		case b.retryStopChan <- 1:
+			log.WARNING.Print("Stopping retry closure.")
+		default:
+		}
+		// Notifying the stop channel stops consuming of messages
+		close(b.stopChan)
+		log.WARNING.Print("Stop channel")
+	})
 }
 
 // GetRegisteredTaskNames returns registered tasks names
