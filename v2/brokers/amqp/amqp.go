@@ -48,8 +48,12 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 	b.Broker.StartConsuming(consumerTag, concurrency, taskProcessor)
 
 	queueName := taskProcessor.CustomQueue()
+	bindingKey := b.GetConfig().AMQP.BindingKey
 	if queueName == "" {
 		queueName = b.GetConfig().DefaultQueue
+	}
+	if b.isDirectExchange() {
+		bindingKey = queueName
 	}
 
 	conn, channel, queue, _, amqpCloseChan, err := b.Connect(
@@ -61,7 +65,7 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 		queueName,                       // queue name
 		true,                            // queue durable
 		false,                           // queue delete when unused
-		b.GetConfig().AMQP.BindingKey,   // queue binding key
+		bindingKey,   // queue binding key
 		nil,                             // exchange declare args
 		amqp.Table(b.GetConfig().AMQP.QueueDeclareArgs), // queue declare args
 		amqp.Table(b.GetConfig().AMQP.QueueBindingArgs), // queue binding args
@@ -477,6 +481,9 @@ func (b *Broker) GetPendingTasks(queue string) ([]*tasks.Signature, error) {
 	}
 
 	bindingKey := b.GetConfig().AMQP.BindingKey // queue binding key
+	if b.isDirectExchange() {
+		bindingKey = queue
+	}
 	conn, err := b.GetOrOpenConnection(
 		queue,
 		bindingKey, // queue binding key
