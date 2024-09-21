@@ -55,6 +55,10 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 	if b.isDirectExchange() {
 		bindingKey = queueName
 	}
+	if b.GetConfig().AMQP.QueuePrefix != "" {
+		queueName = b.GetConfig().AMQP.QueuePrefix + "_" + queueName
+		bindingKey = b.GetConfig().AMQP.QueuePrefix + "_" + bindingKey
+	}
 
 	conn, channel, queue, _, amqpCloseChan, err := b.Connect(
 		b.GetConfig().Broker,
@@ -65,7 +69,7 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 		queueName,                       // queue name
 		true,                            // queue durable
 		false,                           // queue delete when unused
-		bindingKey,   // queue binding key
+		bindingKey,                      // queue binding key
 		nil,                             // exchange declare args
 		amqp.Table(b.GetConfig().AMQP.QueueDeclareArgs), // queue declare args
 		amqp.Table(b.GetConfig().AMQP.QueueBindingArgs), // queue binding args
@@ -213,6 +217,10 @@ func (b *Broker) Publish(ctx context.Context, signature *tasks.Signature) error 
 		queue = signature.RoutingKey
 		bindingKey = signature.RoutingKey
 	}
+	if b.GetConfig().AMQP.QueuePrefix != "" {
+		queue = b.GetConfig().AMQP.QueuePrefix + "_" + queue
+		bindingKey = b.GetConfig().AMQP.QueuePrefix + "_" + bindingKey
+	}
 
 	connection, err := b.GetOrOpenConnection(
 		queue,
@@ -230,7 +238,7 @@ func (b *Broker) Publish(ctx context.Context, signature *tasks.Signature) error 
 
 	if err := channel.Publish(
 		b.GetConfig().AMQP.Exchange, // exchange name
-		signature.RoutingKey,        // routing key
+		bindingKey,                  // routing key
 		false,                       // mandatory
 		false,                       // immediate
 		amqp.Publishing{

@@ -86,6 +86,7 @@ type AMQPConfig struct {
 	PrefetchCount    int              `yaml:"prefetch_count" envconfig:"AMQP_PREFETCH_COUNT"`
 	AutoDelete       bool             `yaml:"auto_delete" envconfig:"AMQP_AUTO_DELETE"`
 	DelayedQueue     string           `yaml:"delayed_queue" envconfig:"AMQP_DELAYED_QUEUE"`
+	QueuePrefix      string           `yaml:"queue_prefix" envconfig:"AMQP_QUEUE_PREFIX"`
 }
 
 // DynamoDBConfig wraps DynamoDB related configuration
