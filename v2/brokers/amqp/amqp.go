@@ -367,11 +367,18 @@ func (b *Broker) delay(signature *tasks.Signature, delayMs int64) error {
 	}
 
 	queueName := b.GetConfig().AMQP.DelayedQueue
+	routingKey := signature.RoutingKey
+	if b.GetConfig().AMQP.QueuePrefix != "" {
+		if queueName != "" {
+			queueName = b.GetConfig().AMQP.QueuePrefix + "_" + queueName
+		}
+		routingKey = b.GetConfig().AMQP.QueuePrefix + "_" + routingKey
+	}
 	declareQueueArgs := amqp.Table{
 		// Exchange where to send messages after TTL expiration.
 		"x-dead-letter-exchange": b.GetConfig().AMQP.Exchange,
 		// Routing key which use when resending expired messages.
-		"x-dead-letter-routing-key": signature.RoutingKey,
+		"x-dead-letter-routing-key": routingKey,
 	}
 	messageProperties := amqp.Publishing{
 		Headers:      amqp.Table(signature.Headers),
@@ -387,13 +394,13 @@ func (b *Broker) delay(signature *tasks.Signature, delayMs int64) error {
 			"delay.%d.%s.%s",
 			delayMs, // delay duration in mileseconds
 			b.GetConfig().AMQP.Exchange,
-			signature.RoutingKey, // routing key
+			routingKey, // routing key
 		)
 		declareQueueArgs = amqp.Table{
 			// Exchange where to send messages after TTL expiration.
 			"x-dead-letter-exchange": b.GetConfig().AMQP.Exchange,
 			// Routing key which use when resending expired messages.
-			"x-dead-letter-routing-key": signature.RoutingKey,
+			"x-dead-letter-routing-key": routingKey,
 			// Time in milliseconds
 			// after that message will expire and be sent to destination.
 			"x-message-ttl": delayMs,
